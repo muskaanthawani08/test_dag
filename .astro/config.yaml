@@ -4,5 +4,4 @@ project:
 
 include:
   - dags/**/*
-  - include/**/*
 
