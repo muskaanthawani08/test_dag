@@ -16,8 +16,7 @@ load_dotenv()
 
 # File paths
 
-FILE_PATH = os.path.join(os.path.dirname(__file__), '../include/supermarket_sales.csv')
-CLEANED_PATH = os.path.join(os.path.dirname(__file__), '../include/cleaned_file.csv')
+FILE_PATH = '/usr/local/airflow/include/supermarket_sales.csv'
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -49,14 +48,12 @@ def transform_data(**kwargs):
 
     df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
     
-    df.to_csv(CLEANED_PATH, index=False)
 
-    kwargs['ti'].xcom_push(key='cleaned_path', value=CLEANED_PATH)
+    kwargs['ti'].xcom_push(key='cleaned_path', value=df)
     logging.info("Data transformed.")
 
 def load_data(**kwargs):
     file_path = kwargs['ti'].xcom_pull(key='cleaned_path')
-    df = pd.read_csv(file_path)
 
     try:
         conn = mysql.connector.connect(
