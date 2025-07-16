@@ -108,7 +108,7 @@ dag = DAG(
     dag_id='daily_sales_pipeline',
     default_args=default_args,
     description='Automates daily sales ingestion to PostgreSQL',
-    schedule_interval='0 6 * * *',
+    schedule='0 6 * * *',
     catchup=False
 )
 
