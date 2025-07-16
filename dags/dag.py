@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # File paths
-FILE_PATH = os.getenv("FILE_PATH", r"C:\Users\Muskaan.Thawani\Desktop\Patient_Square\supermarket_sales.csv")
+
+FILE_PATH = os.path.join(os.path.dirname(__file__), '../include/supermarket_sales.csv')
 CLEANED_PATH = os.getenv("CLEANED_PATH", r"C:\Users\Muskaan.Thawani\Desktop\Patient_Square\cleaned_sales.csv")
 
 # Logging setup
