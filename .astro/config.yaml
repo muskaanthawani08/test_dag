@@ -3,4 +3,3 @@ project:
 
 include:
   - dags/**/*
-  - dags/Daily_sales.py
