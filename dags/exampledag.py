@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.operators.dummy import EmptyOperator
+from airflow.operators.empty import EmptyOperator
 from datetime import datetime
 
 # Define the DAG
