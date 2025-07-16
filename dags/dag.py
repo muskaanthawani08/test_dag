@@ -4,8 +4,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.bash import BashOperator
 from airflow.utils import timezone
 from datetime import timedelta, datetime
-import random
-from .Daily_sales import download_data, validate_file, transform_data, load_data
+from Daily_sales import download_data, validate_file, transform_data, load_data
 
 default_args = {
     'owner': 'airflow',
