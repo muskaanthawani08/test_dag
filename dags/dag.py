@@ -135,7 +135,7 @@ def skip_if_empty(**kwargs):
 
 branch_task = BranchPythonOperator(
     task_id='branch_on_validation',
-    provide_context=True,
+    python_callable=skip_if_empty,
     dag=dag
 )
 
