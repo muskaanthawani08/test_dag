@@ -1,2 +1,2 @@
-#update
-FROM quay.io/astronomer/astro-runtime:3.0-4
+FROM astrocrpublic.azurecr.io/runtime:3.0-4
+ 
