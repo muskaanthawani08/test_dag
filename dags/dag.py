@@ -17,8 +17,7 @@ load_dotenv()
 # File paths
 
 FILE_PATH = os.path.join(os.path.dirname(__file__), '../include/supermarket_sales.csv')
-CLEANED_PATH = os.getenv("CLEANED_PATH", r"C:\Users\Muskaan.Thawani\Desktop\Patient_Square\cleaned_sales.csv")
-
+CLEANED_PATH = os.path.join(os.path.dirname(__file__), '../include/cleaned_file.csv')
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
