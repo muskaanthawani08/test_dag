@@ -1,3 +1,6 @@
 project:
-       name: test_dag
-       
+  name: test_dag
+
+include:
+  - dags/**/*
+  - dags/Daily_sales.py
