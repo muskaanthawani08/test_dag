@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.bash_operator import BashOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.bash import BashOperator
 from airflow.utils.dates import days_ago
 from datetime import timedelta, datetime
 import random
@@ -22,7 +22,7 @@ dag = DAG(
     catchup=False
 )
 
-start_pipeline = DummyOperator(
+start_pipeline = EmptyOperator(
     task_id='start_pipeline',
     dag=dag
 )
@@ -62,7 +62,7 @@ load_task = PythonOperator(
     dag=dag
 )
 
-skip_load = DummyOperator(
+skip_load = EmptyOperator(
     task_id='skip_load',
     dag=dag
 )
