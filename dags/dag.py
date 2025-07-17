@@ -40,7 +40,9 @@ def download_data(**kwargs):
 
         logging.info("data preview:\n%s", df.head().to_string(index=False))  
 
-        kwargs['ti'].xcom_push(key='file_path', value=df)
+        df.to_pickle('/tmp/daily_sales.pkl')
+        kwargs['ti'].xcom_push(key='file_path', value='/tmp/daily_sales.pkl')
+
 
         logging.info(f"Fetched {len(df)} rows from Snowflake.")
 
@@ -71,19 +73,21 @@ def download_data(**kwargs):
 
 def validate_file(**kwargs):
     try:
-        df = kwargs['ti'].xcom_pull(task_ids='download_data', key='file_path')
-        
-        if df is None:
-            raise ValueError("No data received from download_data task.")
-        
-        logging.info("Received data preview:\n%s", df.head().to_string(index=False))
+        df = kwargs['ti'].xcom_pull(key='file_path')
 
-        if df.empty:
-            raise ValueError("Sales data is empty.")
+        if df is None:
+            logging.warning("Validation error: No data received from download_data task. Treating as empty.")
+            kwargs['ti'].xcom_push(key='is_empty', value=True)
+            return
+
+        is_empty = df.empty
+        kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
+        logging.info(f"File validation complete: Empty={is_empty}")
 
     except Exception as e:
-        logging.error(f"Validation error: {e}")
+        logging.error(f"Error in validate_file: {e}")
         raise
+
 
 
 
