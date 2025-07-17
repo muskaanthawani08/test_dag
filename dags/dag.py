@@ -16,7 +16,7 @@ load_dotenv()
 
 # File paths
 
-FILE_PATH = 'include/supermarket_sales.csv's
+FILE_PATH = 'include/supermarket_sales.csv'
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
