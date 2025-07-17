@@ -125,7 +125,7 @@ def load_data(**kwargs):
 default_args = {
     'owner': 'airflow',
     'start_date': datetime(2025, 1, 1),
-    'retries': 2,
+    'retries': 0,
     'retry_delay': timedelta(minutes=5)
 }
 
