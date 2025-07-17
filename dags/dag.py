@@ -10,26 +10,18 @@ import pandas as pd
 import logging
 import mysql.connector
 from dotenv import load_dotenv
+import snowflake.connector as sf
 
 # Load environment variables
 load_dotenv()
 
-# File paths
-FILE_PATH = '/include/supermarket_sales.csv'
-
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def download_data(**kwargs):
-    if not os.path.exists(FILE_PATH):
-        logging.error("Sales file not found.")
-        raise FileNotFoundError("Sales file not found.")
-    kwargs['ti'].xcom_push(key='file_path', value=FILE_PATH)
-    logging.info("File downloaded.")
 
 def download_data(**kwargs):
     try:
-        conn = snowflake.connector.connect(
+        conn = sf.connect(
             user=os.getenv('SNOWFLAKE_USER'),
             password=os.getenv('SNOWFLAKE_PASSWORD'),
             account=os.getenv('SNOWFLAKE_ACCOUNT'),
@@ -59,15 +51,13 @@ def download_data(**kwargs):
 
 
 def validate_file(**kwargs):
-    file_path = kwargs['ti'].xcom_pull(key='file_path')
-    df = pd.read_csv(file_path)
+    df = kwargs['ti'].xcom_pull(key='file_path')
     is_empty = df.empty
     kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
     logging.info(f"File validation complete: Empty={is_empty}")
 
 def transform_data(**kwargs):
-    file_path = kwargs['ti'].xcom_pull(key='file_path')
-    df = pd.read_csv(file_path)
+    df = kwargs['ti'].xcom_pull(key='file_path')
 
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
 
@@ -84,7 +74,7 @@ def transform_data(**kwargs):
     logging.info("Data transformed.")
 
 def load_data(**kwargs):
-    file_path = kwargs['ti'].xcom_pull(key='cleaned_path')
+    df = kwargs['ti'].xcom_pull(key='cleaned_path')
 
     try:
         conn = mysql.connector.connect(
