@@ -51,27 +51,34 @@ def download_data(**kwargs):
 
 
 def validate_file(**kwargs):
-    df = kwargs['ti'].xcom_pull(key='file_path')
-    is_empty = df.empty
-    kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
-    logging.info(f"File validation complete: Empty={is_empty}")
+    try:
+        df = kwargs['ti'].xcom_pull(key='file_path')
+        is_empty = df.empty
+        kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
+        logging.info(f"File validation complete: Empty={is_empty}")
+    except Exception as e:
+        logging.error(f"Error in validate_file: {e}")
+        raise
+
 
 def transform_data(**kwargs):
-    df = kwargs['ti'].xcom_pull(key='file_path')
+    try:
+        df = kwargs['ti'].xcom_pull(key='file_path')
 
-    df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
 
-    df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
+        df.dropna(inplace=True)
+        df.rename(columns={'Invoice ID': 'Invoice_id'}, inplace=True)
 
-    df.dropna(inplace=True)
+        df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
 
-    df.rename(columns={'Invoice ID': 'Invoice_id'}, inplace=True)
+        kwargs['ti'].xcom_push(key='cleaned_path', value=df)
+        logging.info("Data transformed.")
+    except Exception as e:
+        logging.error(f"Error in transform_data: {e}")
+        raise
 
-    df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
-    
-
-    kwargs['ti'].xcom_push(key='cleaned_path', value=df)
-    logging.info("Data transformed.")
 
 def load_data(**kwargs):
     df = kwargs['ti'].xcom_pull(key='cleaned_path')
@@ -148,8 +155,14 @@ validate_task = PythonOperator(
 )
 
 def skip_if_empty(**kwargs):
-    is_empty = kwargs['ti'].xcom_pull(task_ids='validate_sales_file', key='is_empty')
-    return 'skip_load' if is_empty else 'transform_sales_data'
+    try:
+        is_empty = kwargs['ti'].xcom_pull(task_ids='validate_sales_file', key='is_empty')
+        logging.info(f"Branch decision: is_empty={is_empty}")
+        return 'skip_load' if is_empty else 'transform_sales_data'
+    except Exception as e:
+        logging.error(f"Error in skip_if_empty: {e}")
+        raise
+
 
 branch_task = BranchPythonOperator(
     task_id='branch_on_validation',
