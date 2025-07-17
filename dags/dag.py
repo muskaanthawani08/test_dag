@@ -37,8 +37,8 @@ def download_data(**kwargs):
         rows = cur.fetchall()
         columns = [col[0] for col in cur.description]
         df = pd.DataFrame(rows, columns=columns)
-        
-        logging.info("data: ",df.head().to_string(index = False))
+
+        logging.info("data preview:\n%s", df.head().to_string(index=False))  
 
         kwargs['ti'].xcom_push(key='file_path', value=df)
 
@@ -56,6 +56,12 @@ def download_data(**kwargs):
 def validate_file(**kwargs):
     try:
         df = kwargs['ti'].xcom_pull(key='file_path')
+
+        if df is None:
+            logging.warning("No DataFrame found; treating as empty.")
+            kwargs['ti'].xcom_push(key='is_empty', value=True)
+            return
+
         is_empty = df.empty
         kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
         logging.info(f"File validation complete: Empty={is_empty}")
