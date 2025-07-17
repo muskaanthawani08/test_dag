@@ -37,8 +37,11 @@ def download_data(**kwargs):
         rows = cur.fetchall()
         columns = [col[0] for col in cur.description]
         df = pd.DataFrame(rows, columns=columns)
+        
+        logging.info("data: ",df.head().to_string(index = False))
 
         kwargs['ti'].xcom_push(key='file_path', value=df)
+
         logging.info(f"Fetched {len(df)} rows from Snowflake.")
 
     except Exception as e:
