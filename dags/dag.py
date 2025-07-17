@@ -53,21 +53,38 @@ def download_data(**kwargs):
         conn.close()
 
 
+# def validate_file(**kwargs):
+#     try:
+#         df = kwargs['ti'].xcom_pull(key='file_path')
+
+#         if df is None:
+#             logging.warning("No DataFrame found; treating as empty.")
+#             kwargs['ti'].xcom_push(key='is_empty', value=True)
+#             return
+
+#         is_empty = df.empty
+#         kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
+#         logging.info(f"File validation complete: Empty={is_empty}")
+#     except Exception as e:
+#         logging.error(f"Error in validate_file: {e}")
+#         raise
+
 def validate_file(**kwargs):
     try:
-        df = kwargs['ti'].xcom_pull(key='file_path')
-
+        df = kwargs['ti'].xcom_pull(task_ids='download_data', key='file_path')
+        
         if df is None:
-            logging.warning("No DataFrame found; treating as empty.")
-            kwargs['ti'].xcom_push(key='is_empty', value=True)
-            return
+            raise ValueError("No data received from download_data task.")
+        
+        logging.info("Received data preview:\n%s", df.head().to_string(index=False))
 
-        is_empty = df.empty
-        kwargs['ti'].xcom_push(key='is_empty', value=is_empty)
-        logging.info(f"File validation complete: Empty={is_empty}")
+        if df.empty:
+            raise ValueError("Sales data is empty.")
+
     except Exception as e:
-        logging.error(f"Error in validate_file: {e}")
+        logging.error(f"Validation error: {e}")
         raise
+
 
 
 def transform_data(**kwargs):
