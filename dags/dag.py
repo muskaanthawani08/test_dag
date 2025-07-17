@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # File paths
-FILE_PATH = os.path.join(os.path.dirname(__file__), 'include', 'supermarket_sales.csv')
+FILE_PATH = '/include/supermarket_sales.csv'
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
