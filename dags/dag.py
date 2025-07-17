@@ -27,6 +27,37 @@ def download_data(**kwargs):
     kwargs['ti'].xcom_push(key='file_path', value=FILE_PATH)
     logging.info("File downloaded.")
 
+def download_data(**kwargs):
+    try:
+        conn = snowflake.connector.connect(
+            user=os.getenv('SNOWFLAKE_USER'),
+            password=os.getenv('SNOWFLAKE_PASSWORD'),
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
+        )
+
+        cur = conn.cursor()
+
+        query = "SELECT * FROM daily_sales"
+        cur.execute(query)
+        rows = cur.fetchall()
+        columns = [col[0] for col in cur.description]
+        df = pd.DataFrame(rows, columns=columns)
+
+        kwargs['ti'].xcom_push(key='file_path', value=df)
+        logging.info(f"Fetched {len(df)} rows from Snowflake.")
+
+    except Exception as e:
+        logging.error(f"Snowflake error: {e}")
+        raise
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 def validate_file(**kwargs):
     file_path = kwargs['ti'].xcom_pull(key='file_path')
     df = pd.read_csv(file_path)
