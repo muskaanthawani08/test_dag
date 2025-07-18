@@ -134,45 +134,74 @@ def transform_data():
  
 def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
- 
+
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            port=int(os.getenv("DB_PORT", "3306"))
+        conn = sf.connect(
+            user=os.getenv('SNOWFLAKE_USER'),
+            password=os.getenv('SNOWFLAKE_PASSWORD'),
+            account=os.getenv('SNOWFLAKE_ACCOUNT'),
+            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
         )
+
         cur = conn.cursor()
- 
-        insert_query = """
-            INSERT INTO daily_sales (
-                Invoice_id, Store, City, Customer_type, Gender, Product_line,
-                Unit_price, Quantity, Tax_5_percent, Total, Date, Time, Payment,
-                cogs, gross_margin_percentage, gross_income, Rating, bracket
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+
+        # Create table if not exists
+        create_stmt = """
+        CREATE TABLE IF NOT EXISTS DAILY_SALES (
+            INVOICE_ID STRING,
+            STORE STRING,
+            CITY STRING,
+            CUSTOMER_TYPE STRING,
+            GENDER STRING,
+            PRODUCT_LINE STRING,
+            UNIT_PRICE FLOAT,
+            QUANTITY INT,
+            TAX_5_PERCENT FLOAT,
+            TOTAL FLOAT,
+            DATE DATE,
+            TIME STRING,
+            PAYMENT STRING,
+            COGS FLOAT,
+            GROSS_MARGIN_PERCENTAGE FLOAT,
+            GROSS_INCOME FLOAT,
+            RATING FLOAT,
+            BRACKET STRING
+        );
         """
- 
+        cur.execute(create_stmt)
+
+        # Prepare data for insertion
         data = [
             (
-                row['Invoice_id'], row['Store'], row['City'], row['Customer type'], row['Gender'],
-                row['Product line'], row['Unit price'], row['Quantity'], row['Tax 5%'], row['Total'],
-                row['Date'], row['Time'], row['Payment'], row['cogs'], row['gross margin percentage'],
-                row['gross income'], row['Rating'], row['bracket']
+                row['INVOICE_ID'], row['STORE'], row['CITY'], row['CUSTOMER_TYPE'], row['GENDER'],
+                row['PRODUCT_LINE'], row['UNIT_PRICE'], row['QUANTITY'], row['TAX_5_PERCENT'], row['TOTAL'],
+                row['DATE'], str(row['TIME']), row['PAYMENT'], row['COGS'], row['GROSS_MARGIN_PERCENTAGE'],
+                row['GROSS_INCOME'], row['RATING'], row['BRACKET']
             )
             for _, row in df.iterrows()
         ]
- 
+
+        insert_query = """
+        INSERT INTO DAILY_SALES (
+            INVOICE_ID, STORE, CITY, CUSTOMER_TYPE, GENDER, PRODUCT_LINE,
+            UNIT_PRICE, QUANTITY, TAX_5_PERCENT, TOTAL, DATE, TIME, PAYMENT,
+            COGS, GROSS_MARGIN_PERCENTAGE, GROSS_INCOME, RATING, BRACKET
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
         cur.executemany(insert_query, data)
         conn.commit()
-        logging.info("Data loaded to MySQL.")
- 
-    except mysql.connector.Error as err:
-        logging.error(f"Database error: {err}")
+        logging.info(f"Successfully loaded {len(df)} rows into Snowflake table 'DAILY_SALES'.")
+
+    except Exception as e:
+        logging.error(f"Snowflake error: {e}")
+        raise
+
     finally:
-        if conn.is_connected():
-            cur.close()
-            conn.close()
+        cur.close()
+        conn.close()
  
  
 def skip_if_empty():
