@@ -149,9 +149,12 @@ def load_data():
             schema=os.getenv('SNOWFLAKE_SCHEMA')
         )
 
+        snowflake_database = os.getenv('SNOWFLAKE_DATABASE')
+        snowflake_schema = os.getenv('SNOWFLAKE_SCHEMA')
+        
         cur = conn.cursor()
-        cur.execute(f"USE DATABASE os.getenv{'SNOWFLAKE_DATABASE'}")
-        cur.execute(f"USE SCHEMA os.getenv{'SNOWFLAKE_SCHEMA'}")
+        cur.execute(f"USE DATABASE {snowflake_database}")
+        cur.execute(f"USE SCHEMA {snowflake_schema}")
 
         create_stmt = f"""
         CREATE OR REPLACE TABLE {table} (
