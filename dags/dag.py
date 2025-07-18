@@ -136,21 +136,32 @@ def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
 
     try:
+        # Load Snowflake credentials
+        database = os.getenv('SNOWFLAKE_DATABASE')
+        schema = os.getenv('SNOWFLAKE_SCHEMA')
+        table = 'DAILY_SALES_OP'
+        qualified_table = f"{database}.{schema}.{table}"
+
+        # Connect to Snowflake
         conn = sf.connect(
             user=os.getenv('SNOWFLAKE_USER'),
             password=os.getenv('SNOWFLAKE_PASSWORD'),
             account=os.getenv('SNOWFLAKE_ACCOUNT'),
             warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-            database=os.getenv('SNOWFLAKE_DATABASE'),
-            schema=os.getenv('SNOWFLAKE_SCHEMA')
+            database=database,
+            schema=schema
         )
 
         cur = conn.cursor()
-        cur.execute(f"USE SCHEMA {os.getenv('SNOWFLAKE_SCHEMA')}")
+
+        # Explicitly set database and schema
+        cur.execute(f"USE DATABASE {database}")
+        cur.execute(f"USE SCHEMA {schema}")
+        logging.info(f"Using Snowflake schema: {database}.{schema}")
 
         # Create table if not exists
-        create_stmt = """
-        CREATE TABLE IF NOT EXISTS DAILY_SALES_OP (
+        create_stmt = f"""
+        CREATE TABLE IF NOT EXISTS {qualified_table} (
             INVOICE_ID STRING,
             STORE STRING,
             CITY STRING,
@@ -172,6 +183,7 @@ def load_data():
         );
         """
         cur.execute(create_stmt)
+        logging.info(f"Table '{qualified_table}' checked/created.")
 
         # Prepare data for insertion
         data = [
@@ -184,26 +196,26 @@ def load_data():
             for _, row in df.iterrows()
         ]
 
-        insert_query = """
-        INSERT INTO DAILY_SALES (
+        insert_stmt = f"""
+        INSERT INTO {qualified_table} (
             INVOICE_ID, STORE, CITY, CUSTOMER_TYPE, GENDER, PRODUCT_LINE,
             UNIT_PRICE, QUANTITY, TAX_5_PERCENT, TOTAL, DATE, TIME, PAYMENT,
             COGS, GROSS_MARGIN_PERCENTAGE, GROSS_INCOME, RATING, BRACKET
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
-        cur.executemany(insert_query, data)
+        cur.executemany(insert_stmt, data)
         conn.commit()
-        logging.info(f"Successfully loaded {len(df)} rows into Snowflake table 'DAILY_SALES'.")
+        logging.info(f"✅ Successfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
 
     except Exception as e:
-        logging.error(f"Snowflake error: {e}")
+        logging.error(f"❌ Snowflake error: {e}")
         raise
 
     finally:
         cur.close()
         conn.close()
- 
+
  
 def skip_if_empty():
     try:
