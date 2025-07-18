@@ -154,7 +154,7 @@ def load_data():
         cur.execute(f"USE SCHEMA os.getenv('SNOWFLAKE_SCHEMA')")
 
         create_stmt = f"""
-        CREATE TABLE IF NOT EXISTS {table} (
+        CREATE OR REPLACE TABLE {table} (
             INVOICE_ID STRING,
             STORE STRING,
             CITY STRING,
@@ -189,7 +189,7 @@ def load_data():
         ]
 
         insert_stmt = f"""
-        INSERT INTO {qualified_table} (
+        INSERT INTO {table} (
             INVOICE_ID, STORE, CITY, CUSTOMER_TYPE, GENDER, PRODUCT_LINE,
             UNIT_PRICE, QUANTITY, TAX_5_PERCENT, TOTAL, DATE, TIME, PAYMENT,
             COGS, GROSS_MARGIN_PERCENTAGE, GROSS_INCOME, RATING, BRACKET
