@@ -100,12 +100,12 @@ def transform_data():
             logging.error(f"Error parsing 'DATE': {e}")
             raise
 
-        # # Parse TIME
-        # try:
-        #     df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
-        # except Exception as e:
-        #     logging.error(f"Error parsing 'TIME': {e}")
-        #     raise
+        # Parse TIME
+        try:
+            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
+        except Exception as e:
+            logging.error(f"Error parsing 'TIME': {e}")
+            raise
 
         # Log null counts before dropping
         logging.info("Missing values in required columns:\n%s", df[required_columns].isnull().sum())
@@ -116,8 +116,8 @@ def transform_data():
         logging.info("Rows after dropna: %d", len(df))
 
         # Optional: log dropped rows for inspection
-        # dropped_rows = df[df[required_columns].isnull().any(axis=1)]
-        # logging.info("Sample of dropped rows:\n%s", dropped_rows.head().to_string(index=False))
+        dropped_rows = df[df[required_columns].isnull().any(axis=1)]
+        logging.info("Sample of dropped rows:\n%s", dropped_rows.head().to_string(index=False))
 
         # Create 'bracket' column
         def calculate_bracket(cogs):
@@ -179,7 +179,7 @@ def load_data():
             TAX_5_PERCENT FLOAT,
             TOTAL FLOAT,
             DATE DATE,
-            TIME STRING,
+            TIME TIME,
             PAYMENT STRING,
             COGS FLOAT,
             GROSS_MARGIN_PERCENTAGE FLOAT,
@@ -191,7 +191,7 @@ def load_data():
 
         cur.execute(create_stmt)
 
-        df['TIME'] = df['TIME'].apply(lambda t: t.strftime('%H:%M:%S') if pd.notnull(t) else None)
+        # df['TIME'] = df['TIME'].apply(lambda t: t.strftime('%H:%M:%S') if pd.notnull(t) else None)
 
         data = [
             (
