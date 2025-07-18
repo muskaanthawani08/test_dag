@@ -246,14 +246,14 @@ validate_task = PythonOperator(
     dag=dag
 )
  
-# def skip_if_empty(**kwargs):
-#     try:
-#         is_empty = kwargs['ti'].xcom_pull(task_ids='validate_sales_file', key='is_empty')
-#         logging.info(f"Branch decision: is_empty={is_empty}")
-#         return 'skip_load' if is_empty else 'transform_sales_data'
-#     except Exception as e:
-#         logging.error(f"Error in skip_if_empty: {e}")
-#         raise
+def skip_if_empty(**kwargs):
+    try:
+        is_empty = kwargs['ti'].xcom_pull(task_ids='validate_sales_file', key='is_empty')
+        logging.info(f"Branch decision: is_empty={is_empty}")
+        return 'skip_load' if is_empty else 'transform_sales_data'
+    except Exception as e:
+        logging.error(f"Error in skip_if_empty: {e}")
+        raise
  
  
 branch_task = BranchPythonOperator(
