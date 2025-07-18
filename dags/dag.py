@@ -136,13 +136,13 @@ def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
 
     try:
-        # Load Snowflake credentials
         database = os.getenv('SNOWFLAKE_DATABASE')
         schema = os.getenv('SNOWFLAKE_SCHEMA')
         table = 'DAILY_SALES_OP'
         qualified_table = f"{database}.{schema}.{table}"
 
-        # Connect to Snowflake
+        logging.info(f"Connecting to Snowflake with DATABASE={database}, SCHEMA={schema}, TABLE={table}")
+
         conn = sf.connect(
             user=os.getenv('SNOWFLAKE_USER'),
             password=os.getenv('SNOWFLAKE_PASSWORD'),
@@ -153,13 +153,9 @@ def load_data():
         )
 
         cur = conn.cursor()
-
-        # Explicitly set database and schema
         cur.execute(f"USE DATABASE {database}")
         cur.execute(f"USE SCHEMA {schema}")
-        logging.info(f"Using Snowflake schema: {database}.{schema}")
 
-        # Create table if not exists
         create_stmt = f"""
         CREATE TABLE IF NOT EXISTS {qualified_table} (
             INVOICE_ID STRING,
@@ -183,9 +179,7 @@ def load_data():
         );
         """
         cur.execute(create_stmt)
-        logging.info(f"Table '{qualified_table}' checked/created.")
 
-        # Prepare data for insertion
         data = [
             (
                 row['INVOICE_ID'], row['STORE'], row['CITY'], row['CUSTOMER_TYPE'], row['GENDER'],
@@ -206,15 +200,16 @@ def load_data():
 
         cur.executemany(insert_stmt, data)
         conn.commit()
-        logging.info(f"✅ Successfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
+        logging.info(f"uccessfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
 
     except Exception as e:
-        logging.error(f"❌ Snowflake error: {e}")
+        logging.error(f"Snowflake error: {e}")
         raise
 
     finally:
         cur.close()
         conn.close()
+
 
  
 def skip_if_empty():
