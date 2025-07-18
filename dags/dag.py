@@ -102,7 +102,7 @@ def transform_data():
 
         # Parse TIME
         try:
-            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
+            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.strftime('%H:%M:%S')
         except Exception as e:
             logging.error(f"Error parsing 'TIME': {e}")
             raise
