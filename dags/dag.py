@@ -151,7 +151,7 @@ def load_data():
 
         snowflake_database = os.getenv('SNOWFLAKE_DATABASE')
         snowflake_schema = os.getenv('SNOWFLAKE_SCHEMA')
-        
+
         cur = conn.cursor()
         cur.execute(f"USE DATABASE {snowflake_database}")
         cur.execute(f"USE SCHEMA {snowflake_schema}")
@@ -201,7 +201,7 @@ def load_data():
 
         cur.executemany(insert_stmt, data)
         conn.commit()
-        logging.info(f"Successfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
+        logging.info(f"Successfully loaded {len(df)} rows into Snowflake table {table}.")
 
     except Exception as e:
         logging.error(f"Snowflake error: {e}")
