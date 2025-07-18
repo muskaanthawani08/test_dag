@@ -223,10 +223,14 @@ def skip_if_empty():
     try:
         flag = open('/tmp/validate_flag.txt').read()
         logging.info(f"Branch decision: {flag}")
-        return 'skip_load' if flag == 'empty' else 'transform_sales_data'
+        if flag == 'empty':
+            return ['skip_load', 'success_notification']
+        else:
+            return ['transform_sales_data']
     except Exception as e:
         logging.error(f"Error in skip_if_empty: {e}")
-        return 'skip_load'
+        return ['skip_load', 'success_notification']
+
  
  
 default_args = {
@@ -294,22 +298,13 @@ skip_load = EmptyOperator(
     dag=dag
 )
 
-end_pipeline = EmptyOperator(
-    task_id='end_pipeline',
-    trigger_rule='none_failed_min_one_success',
-    dag=dag
-)
-
- 
 success_notify = BashOperator(
     task_id='success_notification',
     bash_command='echo "Sales pipeline completed successfully!"',
     dag=dag
 )
  
- 
 # Define dependencies
 start_pipeline >> download_task >> validate_task >> branch_task
-branch_task >> transform_task >> load_task >> end_pipeline
-branch_task >> skip_load >> end_pipeline
-end_pipeline >> success_notify
+branch_task >> transform_task >> load_task >> success_notify
+branch_task >> skip_load >> success_notify
