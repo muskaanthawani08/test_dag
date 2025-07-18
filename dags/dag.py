@@ -93,14 +93,14 @@ def transform_data():
         logging.info("Column types before parsing:\n%s", df.dtypes)
 
         # Parse DATE
-        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce').dt.date  # 🔧 CHANGED: convert to pure date
 
         # Parse TIME safely
         def parse_time(t):
             try:
-                return datetime.strptime(str(t), '%H:%M:%S').time()
+                return datetime.strptime(str(t), '%H:%M:%S').strftime('%H:%M:%S')  # 🔧 CHANGED: convert to string
             except Exception:
-                return pd.NaT
+                return None  # 🔧 CHANGED: use None instead of pd.NaT for string compatibility
 
         df['TIME'] = df['TIME'].apply(parse_time)
 
@@ -134,8 +134,8 @@ def transform_data():
     except Exception as e:
         logging.error(f"Error in transform_data: {e}")
         raise
-    
-     
+
+
 def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
 
@@ -185,12 +185,13 @@ def load_data():
 
         cur.execute(create_stmt)
 
+        # 🔧 CHANGED: Ensure all values are converted to compatible types
         data = [
             (
-                row['INVOICE_ID'], row['STORE'], row['CITY'], row['CUSTOMER_TYPE'], row['GENDER'],
-                row['PRODUCT_LINE'], row['UNIT_PRICE'], row['QUANTITY'], row['TAX_5_PERCENT'], row['TOTAL'],
-                row['DATE'], row['TIME'], row['PAYMENT'], row['COGS'], row['GROSS_MARGIN_PERCENTAGE'],
-                row['GROSS_INCOME'], row['RATING'], row['BRACKET']
+                str(row['INVOICE_ID']), str(row['STORE']), str(row['CITY']), str(row['CUSTOMER_TYPE']), str(row['GENDER']),
+                str(row['PRODUCT_LINE']), float(row['UNIT_PRICE']), int(row['QUANTITY']), float(row['TAX_5_PERCENT']), float(row['TOTAL']),
+                row['DATE'], row['TIME'], str(row['PAYMENT']), float(row['COGS']), float(row['GROSS_MARGIN_PERCENTAGE']),
+                float(row['GROSS_INCOME']), float(row['RATING']), str(row['BRACKET'])
             )
             for _, row in df.iterrows()
         ]
@@ -214,6 +215,7 @@ def load_data():
     finally:
         cur.close()
         conn.close()
+
 
 
  
