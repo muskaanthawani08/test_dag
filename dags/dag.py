@@ -100,12 +100,12 @@ def transform_data():
             logging.error(f"Error parsing 'DATE': {e}")
             raise
 
-        # Parse TIME
-        try:
-            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
-        except Exception as e:
-            logging.error(f"Error parsing 'TIME': {e}")
-            raise
+        # # Parse TIME
+        # try:
+        #     df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
+        # except Exception as e:
+        #     logging.error(f"Error parsing 'TIME': {e}")
+        #     raise
 
         # Log null counts before dropping
         logging.info("Missing values in required columns:\n%s", df[required_columns].isnull().sum())
