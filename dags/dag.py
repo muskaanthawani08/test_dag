@@ -179,7 +179,7 @@ def load_data():
             TAX_5_PERCENT FLOAT,
             TOTAL FLOAT,
             DATE DATE,
-            TIME TIME,
+            TIME STRING,
             PAYMENT STRING,
             COGS FLOAT,
             GROSS_MARGIN_PERCENTAGE FLOAT,
@@ -190,8 +190,6 @@ def load_data():
         """
 
         cur.execute(create_stmt)
-
-        # df['TIME'] = df['TIME'].apply(lambda t: t.strftime('%H:%M:%S') if pd.notnull(t) else None)
 
         data = [
             (
