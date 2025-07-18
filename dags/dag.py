@@ -269,7 +269,7 @@ transform_task = PythonOperator(
 )
  
 load_task = PythonOperator(
-    task_id='load_sales_data_to_snowflake',
+    task_id='load_sales_data_to_postgres',
     python_callable=load_data,
     dag=dag
 )
