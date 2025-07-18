@@ -293,6 +293,13 @@ skip_load = EmptyOperator(
     task_id='skip_load',
     dag=dag
 )
+
+end_pipeline = EmptyOperator(
+    task_id='end_pipeline',
+    trigger_rule='none_failed_min_one_success',
+    dag=dag
+)
+
  
 success_notify = BashOperator(
     task_id='success_notification',
@@ -303,5 +310,6 @@ success_notify = BashOperator(
  
 # Define dependencies
 start_pipeline >> download_task >> validate_task >> branch_task
-branch_task >> transform_task >> load_task >> success_notify
-branch_task >> skip_load >> success_notify
+branch_task >> transform_task >> load_task >> end_pipeline
+branch_task >> skip_load >> end_pipeline
+end_pipeline >> success_notify
