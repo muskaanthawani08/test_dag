@@ -150,8 +150,8 @@ def load_data():
         )
 
         cur = conn.cursor()
-        cur.execute(f"USE DATABASE os.getenv('SNOWFLAKE_DATABASE')")
-        cur.execute(f"USE SCHEMA os.getenv('SNOWFLAKE_SCHEMA')")
+        cur.execute(f"USE DATABASE os.getenv{'SNOWFLAKE_DATABASE'}")
+        cur.execute(f"USE SCHEMA os.getenv{'SNOWFLAKE_SCHEMA'}")
 
         create_stmt = f"""
         CREATE OR REPLACE TABLE {table} (
@@ -198,7 +198,7 @@ def load_data():
 
         cur.executemany(insert_stmt, data)
         conn.commit()
-        logging.info(f"uccessfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
+        logging.info(f"Successfully loaded {len(df)} rows into Snowflake table '{qualified_table}'.")
 
     except Exception as e:
         logging.error(f"Snowflake error: {e}")
