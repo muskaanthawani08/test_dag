@@ -74,44 +74,50 @@ def validate_file():
 
 def transform_data():
     try:
+        # Load data
         df = pd.read_pickle('/tmp/daily_sales.pkl')
-        logging.info("Columns in dataframe: %s", df.columns.tolist())
+        logging.info("Original columns: %s", df.columns.tolist())
         logging.info("Data preview before transformation:\n%s", df.head().to_string(index=False))
 
         # Normalize column names to uppercase
         df.columns = df.columns.str.upper()
         logging.info("Normalized columns: %s", df.columns.tolist())
 
-        # Required columns (in uppercase now)
+        # Required columns (in uppercase)
         required_columns = ['DATE', 'TIME', 'INVOICE_ID', 'COGS']
         missing = [col for col in required_columns if col not in df.columns]
         if missing:
             logging.error(f"Missing columns: {missing}")
             raise ValueError(f"Missing columns: {missing}")
 
-        # Parse Date
+        # Parse DATE
         try:
-            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+            df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
         except Exception as e:
-            logging.error(f"Error parsing 'Date': {e}")
+            logging.error(f"Error parsing 'DATE': {e}")
             raise
 
-        # Parse Time
+        # Parse TIME
         try:
-            df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
+            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
         except Exception as e:
-            logging.error(f"Error parsing 'Time': {e}")
+            logging.error(f"Error parsing 'TIME': {e}")
             raise
 
-        # Drop rows with NaT or NaN
-        df.dropna(inplace=True)
+        # Drop rows with missing required values
+        df.dropna(subset=required_columns, inplace=True)
 
-        # Rename column
-        df.rename(columns={'Invoice ID': 'Invoice_id'}, inplace=True)
+        # Rename column for consistency
+        df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
 
-        # Create bracket column
+        # Create 'bracket' column
+        def calculate_bracket(cogs):
+            lower = math.floor(cogs / 50) * 50
+            upper = lower + 50
+            return f"{lower}-{upper}"
+
         try:
-            df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
+            df['bracket'] = df['COGS'].apply(calculate_bracket)
         except Exception as e:
             logging.error(f"Error creating 'bracket' column: {e}")
             raise
@@ -124,7 +130,6 @@ def transform_data():
     except Exception as e:
         logging.error(f"Error in transform_data: {e}")
         raise
-
 
 
 def load_data():
