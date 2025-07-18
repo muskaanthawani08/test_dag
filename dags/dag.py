@@ -105,7 +105,7 @@ def transform_data():
             raise
  
         # Drop rows with missing required values
-        df.dropna(subset=required_columns, inplace=True)
+        # df.dropna(subset=required_columns, inplace=True)
  
         # Rename column for consistency
         # df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
