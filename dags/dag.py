@@ -78,8 +78,12 @@ def transform_data():
         logging.info("Columns in dataframe: %s", df.columns.tolist())
         logging.info("Data preview before transformation:\n%s", df.head().to_string(index=False))
 
-        # Check for required columns
-        required_columns = ['Date', 'Time', 'Invoice ID', 'cogs']
+        # Normalize column names to uppercase
+        df.columns = df.columns.str.upper()
+        logging.info("Normalized columns: %s", df.columns.tolist())
+
+        # Required columns (in uppercase now)
+        required_columns = ['DATE', 'TIME', 'INVOICE_ID', 'COGS']
         missing = [col for col in required_columns if col not in df.columns]
         if missing:
             logging.error(f"Missing columns: {missing}")
