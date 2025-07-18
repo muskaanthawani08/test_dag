@@ -92,7 +92,7 @@ def transform_data():
 
         # Log data types before parsing
         logging.info("Column types before parsing:\n%s", df.dtypes)
-        
+
         # Log distinct TIME values
         distinct_times = df['TIME'].dropna().unique()
         logging.info("Distinct TIME values:\n%s", distinct_times)
@@ -111,6 +111,9 @@ def transform_data():
         except Exception as e:
             logging.error(f"Error parsing 'TIME': {e}")
             raise
+
+        distinct_times = df['TIME'].dropna().unique()
+        logging.info("Distinct TIME values:\n%s", distinct_times)
 
         # Log null counts before dropping
         logging.info("Missing values in required columns:\n%s", df[required_columns].isnull().sum())
