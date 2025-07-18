@@ -18,38 +18,143 @@ load_dotenv()
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
  
- 
-def download_data():
+
+# ❄️ Snowflake connection parameters
+SNOWFLAKE_CONFIG = {
+    'user': '<YOUR_USERNAME>',
+    'password': '<YOUR_PASSWORD>',
+    'account': '<YOUR_ACCOUNT>.snowflakecomputing.com',
+    'warehouse': '<YOUR_WAREHOUSE>',
+    'database': '<YOUR_DATABASE>',
+    'schema': '<YOUR_SCHEMA>',
+    'role': '<YOUR_ROLE>'  # optional
+}
+
+# 🚀 Transform and clean the data
+def transform_data():
     try:
-        conn = sf.connect(
-            user=os.getenv('SNOWFLAKE_USER'),
-            password=os.getenv('SNOWFLAKE_PASSWORD'),
-            account=os.getenv('SNOWFLAKE_ACCOUNT'),
-            warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-            database=os.getenv('SNOWFLAKE_DATABASE'),
-            schema=os.getenv('SNOWFLAKE_SCHEMA')
-        )
+        # Load raw data
+        df = pd.read_pickle('/tmp/daily_sales.pkl')
+        logging.info("Original columns: %s", df.columns.tolist())
+        logging.info("Data preview before transformation:\n%s", df.head().to_string(index=False))
 
-        cur = conn.cursor()
+        # Normalize column names to uppercase
+        df.columns = df.columns.str.upper()
+        logging.info("Normalized columns: %s", df.columns.tolist())
 
-        query = "SELECT * FROM daily_sales"
-        cur.execute(query)
-        rows = cur.fetchall()
-        columns = [col[0] for col in cur.description]
-        df = pd.DataFrame(rows, columns=columns)
+        # Required columns
+        required_columns = ['DATE', 'TIME', 'INVOICE_ID', 'COGS']
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            logging.error(f"Missing columns: {missing}")
+            raise ValueError(f"Missing columns: {missing}")
 
-        logging.info("data preview:\n%s", df.head().to_string(index=False))  
+        # Parse DATE and TIME
+        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+        df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
 
-        df.to_pickle('/tmp/daily_sales.pkl')
-        logging.info(f"Fetched {len(df)} rows from Snowflake.")
-        logging.info("data preview after pushing:\n%s", df.head().to_string(index=False))  
+        # Drop rows with missing required values
+        df.dropna(subset=required_columns, inplace=True)
+
+        # Rename column for consistency
+        df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
+
+        # Create 'BRACKET' column
+        def calculate_bracket(cogs):
+            lower = math.floor(cogs / 50) * 50
+            upper = lower + 50
+            return f"{lower}-{upper}"
+
+        df['BRACKET'] = df['COGS'].apply(calculate_bracket)
+
+        logging.info("Data transformed successfully.")
+        logging.info("Transformed data preview:\n%s", df.head().to_string(index=False))
+
+        # Push to Snowflake
+        load_data(df, table_name='DAILY_SALES_CLEANED')
 
     except Exception as e:
-        logging.error(f"Snowflake error: {e}")
+        logging.error(f"Error in transform_data: {e}")
+        raise
+
+# 📤 Load cleaned data into Snowflake
+def load_data(df, table_name):
+    try:
+        conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
+        cursor = conn.cursor()
+
+        # Create table if not exists
+        create_stmt = f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            Invoice_id STRING,
+            STORE STRING,
+            CITY STRING,
+            CUSTOMER_TYPE STRING,
+            GENDER STRING,
+            PRODUCT_LINE STRING,
+            UNIT_PRICE FLOAT,
+            QUANTITY INT,
+            TAX_5_PERCENT FLOAT,
+            TOTAL FLOAT,
+            DATE DATE,
+            TIME STRING,
+            PAYMENT STRING,
+            COGS FLOAT,
+            GROSS_MARGIN_PERCENTAGE FLOAT,
+            GROSS_INCOME FLOAT,
+            RATING FLOAT,
+            BRACKET STRING
+        );
+        """
+        cursor.execute(create_stmt)
+
+        # Insert data row by row
+        for _, row in df.iterrows():
+            insert_stmt = f"""
+            INSERT INTO {table_name} VALUES (
+                {', '.join(['%s'] * len(row))}
+            )
+            """
+            cursor.execute(insert_stmt, tuple(row))
+
+        conn.commit()
+        logging.info(f"Successfully pushed {len(df)} rows to Snowflake table '{table_name}'.")
+
+    except Exception as e:
+        logging.error(f"Error loading data to Snowflake: {e}")
         raise
 
     finally:
-        cur.close()
+        cursor.close()
+        conn.close()
+
+# 📥 Download data from Snowflake into a DataFrame
+def download_data(table_name):
+    try:
+        conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
+        cursor = conn.cursor()
+
+        # Query data
+        query = f"SELECT * FROM {table_name};"
+        cursor.execute(query)
+
+        # Fetch column names and rows
+        columns = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+
+        # Convert to DataFrame
+        df = pd.DataFrame(rows, columns=columns)
+        logging.info(f"Downloaded {len(df)} rows from Snowflake table '{table_name}'.")
+        logging.info("Downloaded data preview:\n%s", df.head().to_string(index=False))
+
+        return df
+
+    except Exception as e:
+        logging.error(f"Error downloading data from Snowflake: {e}")
+        raise
+
+    finally:
+        cursor.close()
         conn.close()
 
 
@@ -70,110 +175,6 @@ def validate_file():
         logging.error(f"Error in validate_file: {e}")
         open('/tmp/validate_flag.txt', 'w').write('empty')
         raise
-
-
-def transform_data():
-    try:
-        # Load data
-        df = pd.read_pickle('/tmp/daily_sales.pkl')
-        logging.info("Original columns: %s", df.columns.tolist())
-        logging.info("Data preview before transformation:\n%s", df.head().to_string(index=False))
-
-        # Normalize column names to uppercase
-        df.columns = df.columns.str.upper()
-        logging.info("Normalized columns: %s", df.columns.tolist())
-
-        # Required columns (in uppercase)
-        required_columns = ['DATE', 'TIME', 'INVOICE_ID', 'COGS']
-        missing = [col for col in required_columns if col not in df.columns]
-        if missing:
-            logging.error(f"Missing columns: {missing}")
-            raise ValueError(f"Missing columns: {missing}")
-
-        # Parse DATE
-        try:
-            df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
-        except Exception as e:
-            logging.error(f"Error parsing 'DATE': {e}")
-            raise
-
-        # Parse TIME
-        try:
-            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.time
-        except Exception as e:
-            logging.error(f"Error parsing 'TIME': {e}")
-            raise
-
-        # Drop rows with missing required values
-        df.dropna(subset=required_columns, inplace=True)
-
-        # Rename column for consistency
-        df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
-
-        # Create 'bracket' column
-        def calculate_bracket(cogs):
-            lower = math.floor(cogs / 50) * 50
-            upper = lower + 50
-            return f"{lower}-{upper}"
-
-        try:
-            df['bracket'] = df['COGS'].apply(calculate_bracket)
-        except Exception as e:
-            logging.error(f"Error creating 'bracket' column: {e}")
-            raise
-
-        # Save cleaned data
-        df.to_pickle('/tmp/daily_sales_cleaned.pkl')
-        logging.info("Data transformed successfully.")
-        logging.info("Transformed data preview:\n%s", df.head().to_string(index=False))
-
-    except Exception as e:
-        logging.error(f"Error in transform_data: {e}")
-        raise
-
-
-def load_data():
-    df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
-
-    try:
-        conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            port=int(os.getenv("DB_PORT", "3306"))
-        )
-        cur = conn.cursor()
-
-        insert_query = """
-            INSERT INTO daily_sales (
-                Invoice_id, Store, City, Customer_type, Gender, Product_line,
-                Unit_price, Quantity, Tax_5_percent, Total, Date, Time, Payment,
-                cogs, gross_margin_percentage, gross_income, Rating, bracket
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-
-        data = [
-            (
-                row['Invoice_id'], row['Store'], row['City'], row['Customer type'], row['Gender'],
-                row['Product line'], row['Unit price'], row['Quantity'], row['Tax 5%'], row['Total'],
-                row['Date'], row['Time'], row['Payment'], row['cogs'], row['gross margin percentage'],
-                row['gross income'], row['Rating'], row['bracket']
-            )
-            for _, row in df.iterrows()
-        ]
-
-        cur.executemany(insert_query, data)
-        conn.commit()
-        logging.info("Data loaded to MySQL.")
-
-    except mysql.connector.Error as err:
-        logging.error(f"Database error: {err}")
-    finally:
-        if conn.is_connected():
-            cur.close()
-            conn.close()
-
 
 def skip_if_empty():
     try:
