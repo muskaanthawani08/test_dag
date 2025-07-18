@@ -83,61 +83,48 @@ def transform_data():
         df.columns = df.columns.str.upper()
         logging.info("Normalized columns: %s", df.columns.tolist())
 
-        # Required columns (in uppercase)
+        # Required columns
         required_columns = ['DATE', 'TIME', 'INVOICE_ID', 'COGS']
         missing = [col for col in required_columns if col not in df.columns]
         if missing:
             logging.error(f"Missing columns: {missing}")
             raise ValueError(f"Missing columns: {missing}")
 
-        # Log data types before parsing
         logging.info("Column types before parsing:\n%s", df.dtypes)
+
+        # Parse DATE
+        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+
+        # Parse TIME safely
+        def parse_time(t):
+            try:
+                return datetime.strptime(str(t), '%H:%M:%S').time()
+            except Exception:
+                return pd.NaT
+
+        df['TIME'] = df['TIME'].apply(parse_time)
 
         # Log distinct TIME values
         distinct_times = df['TIME'].dropna().unique()
         logging.info("Distinct TIME values:\n%s", distinct_times)
 
-
-        # Parse DATE
-        try:
-            df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
-        except Exception as e:
-            logging.error(f"Error parsing 'DATE': {e}")
-            raise
-
-        # Parse TIME
-        try:
-            df['TIME'] = pd.to_datetime(df['TIME'], errors='coerce').dt.strftime('%H:%M:%S')
-        except Exception as e:
-            logging.error(f"Error parsing 'TIME': {e}")
-            raise
-
-        distinct_times = df['TIME'].dropna().unique()
-        logging.info("Distinct TIME values:\n%s", distinct_times)
-
-        # Log null counts before dropping
+        # Drop rows with missing required fields
         logging.info("Missing values in required columns:\n%s", df[required_columns].isnull().sum())
-
-        # Log row count before dropping
         logging.info("Rows before dropna: %d", len(df))
         df.dropna(subset=required_columns, inplace=True)
         logging.info("Rows after dropna: %d", len(df))
 
-        # Optional: log dropped rows for inspection
-        dropped_rows = df[df[required_columns].isnull().any(axis=1)]
-        logging.info("Sample of dropped rows:\n%s", dropped_rows.head().to_string(index=False))
-
-        # Create 'bracket' column
+        # Create 'BRACKET' column
         def calculate_bracket(cogs):
-            lower = math.floor(cogs / 50) * 50
-            upper = lower + 50
-            return f"{lower}-{upper}"
+            try:
+                cogs = float(cogs)
+                lower = math.floor(cogs / 50) * 50
+                upper = lower + 50
+                return f"{lower}-{upper}"
+            except Exception:
+                return "Invalid"
 
-        try:
-            df['BRACKET'] = df['COGS'].apply(calculate_bracket)
-        except Exception as e:
-            logging.error(f"Error creating 'BRACKET' column: {e}")
-            raise
+        df['BRACKET'] = df['COGS'].apply(calculate_bracket)
 
         # Save cleaned data
         df.to_pickle('/tmp/daily_sales_cleaned.pkl')
@@ -147,9 +134,8 @@ def transform_data():
     except Exception as e:
         logging.error(f"Error in transform_data: {e}")
         raise
-
- 
- 
+    
+     
 def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
 
