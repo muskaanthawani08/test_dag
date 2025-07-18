@@ -108,7 +108,7 @@ def transform_data():
         df.dropna(subset=required_columns, inplace=True)
  
         # Rename column for consistency
-        df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
+        # df.rename(columns={'INVOICE_ID': 'Invoice_id'}, inplace=True)
  
         # Create 'bracket' column
         def calculate_bracket(cogs):
