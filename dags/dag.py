@@ -191,11 +191,13 @@ def load_data():
 
         cur.execute(create_stmt)
 
+        df['TIME'] = df['TIME'].apply(lambda t: t.strftime('%H:%M:%S') if pd.notnull(t) else None)
+
         data = [
             (
                 row['INVOICE_ID'], row['STORE'], row['CITY'], row['CUSTOMER_TYPE'], row['GENDER'],
                 row['PRODUCT_LINE'], row['UNIT_PRICE'], row['QUANTITY'], row['TAX_5_PERCENT'], row['TOTAL'],
-                row['DATE'], str(row['TIME']), row['PAYMENT'], row['COGS'], row['GROSS_MARGIN_PERCENTAGE'],
+                row['DATE'], row['TIME'], row['PAYMENT'], row['COGS'], row['GROSS_MARGIN_PERCENTAGE'],
                 row['GROSS_INCOME'], row['RATING'], row['BRACKET']
             )
             for _, row in df.iterrows()
