@@ -146,6 +146,7 @@ def load_data():
         )
 
         cur = conn.cursor()
+        cur.execute(f"USE SCHEMA {os.getenv('SNOWFLAKE_SCHEMA')}")
 
         # Create table if not exists
         create_stmt = """
