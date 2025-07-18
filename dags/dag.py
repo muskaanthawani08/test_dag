@@ -75,21 +75,52 @@ def validate_file():
 def transform_data():
     try:
         df = pd.read_pickle('/tmp/daily_sales.pkl')
+        logging.info("Columns in dataframe: %s", df.columns.tolist())
+        logging.info("Data preview before transformation:\n%s", df.head().to_string(index=False))
 
-        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-        df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
+        # Check for required columns
+        required_columns = ['Date', 'Time', 'Invoice ID', 'cogs']
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            logging.error(f"Missing columns: {missing}")
+            raise ValueError(f"Missing columns: {missing}")
 
+        # Parse Date
+        try:
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        except Exception as e:
+            logging.error(f"Error parsing 'Date': {e}")
+            raise
+
+        # Parse Time
+        try:
+            df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
+        except Exception as e:
+            logging.error(f"Error parsing 'Time': {e}")
+            raise
+
+        # Drop rows with NaT or NaN
         df.dropna(inplace=True)
+
+        # Rename column
         df.rename(columns={'Invoice ID': 'Invoice_id'}, inplace=True)
 
-        df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
+        # Create bracket column
+        try:
+            df['bracket'] = df['cogs'].apply(lambda cogs: f"{math.floor(cogs / 50) * 50}-{(math.floor(cogs / 50) + 1) * 50}")
+        except Exception as e:
+            logging.error(f"Error creating 'bracket' column: {e}")
+            raise
 
+        # Save cleaned data
         df.to_pickle('/tmp/daily_sales_cleaned.pkl')
-        logging.info("Data transformed.")
+        logging.info("Data transformed successfully.")
+        logging.info("Transformed data preview:\n%s", df.head().to_string(index=False))
 
     except Exception as e:
         logging.error(f"Error in transform_data: {e}")
         raise
+
 
 
 def load_data():
