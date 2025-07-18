@@ -226,7 +226,7 @@ def skip_if_empty():
         if flag == 'empty':
             return ['skip_load', 'success_notification']
         else:
-            return ['transform_sales_data']
+            return ['transform_sales_data','load_sales_data_to_postgres','success_notification']
     except Exception as e:
         logging.error(f"Error in skip_if_empty: {e}")
         return ['skip_load', 'success_notification']
