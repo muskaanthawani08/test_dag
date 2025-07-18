@@ -136,28 +136,25 @@ def load_data():
     df = pd.read_pickle('/tmp/daily_sales_cleaned.pkl')
 
     try:
-        database = os.getenv('SNOWFLAKE_DATABASE')
-        schema = os.getenv('SNOWFLAKE_SCHEMA')
         table = 'DAILY_SALES_OP'
-        qualified_table = f"{database}.{schema}.{table}"
 
-        logging.info(f"Connecting to Snowflake with DATABASE={database}, SCHEMA={schema}, TABLE={table}")
+        logging.info(f"Connecting to Snowflake ")
 
         conn = sf.connect(
             user=os.getenv('SNOWFLAKE_USER'),
             password=os.getenv('SNOWFLAKE_PASSWORD'),
             account=os.getenv('SNOWFLAKE_ACCOUNT'),
             warehouse=os.getenv('SNOWFLAKE_WAREHOUSE'),
-            database=database,
-            schema=schema
+            database=os.getenv('SNOWFLAKE_DATABASE'),
+            schema=os.getenv('SNOWFLAKE_SCHEMA')
         )
 
         cur = conn.cursor()
-        cur.execute(f"USE DATABASE {database}")
-        cur.execute(f"USE SCHEMA {schema}")
+        cur.execute(f"USE DATABASE os.getenv('SNOWFLAKE_DATABASE')")
+        cur.execute(f"USE SCHEMA os.getenv('SNOWFLAKE_SCHEMA')")
 
         create_stmt = f"""
-        CREATE TABLE IF NOT EXISTS {qualified_table} (
+        CREATE TABLE IF NOT EXISTS f"{table}" (
             INVOICE_ID STRING,
             STORE STRING,
             CITY STRING,
