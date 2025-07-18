@@ -154,7 +154,7 @@ def load_data():
         cur.execute(f"USE SCHEMA os.getenv('SNOWFLAKE_SCHEMA')")
 
         create_stmt = f"""
-        CREATE TABLE IF NOT EXISTS f"{table}" (
+        CREATE TABLE IF NOT EXISTS {table} (
             INVOICE_ID STRING,
             STORE STRING,
             CITY STRING,
@@ -175,6 +175,7 @@ def load_data():
             BRACKET STRING
         );
         """
+
         cur.execute(create_stmt)
 
         data = [
