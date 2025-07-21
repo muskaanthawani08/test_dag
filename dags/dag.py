@@ -215,9 +215,6 @@ def load_data():
     finally:
         cur.close()
         conn.close()
-
-
-
  
 def skip_if_empty():
     try:
@@ -265,16 +262,6 @@ validate_task = PythonOperator(
     dag=dag
 )
  
-# def skip_if_empty(**kwargs):
-#     try:
-#         is_empty = kwargs['ti'].xcom_pull(task_ids='validate_sales_file', key='is_empty')
-#         logging.info(f"Branch decision: is_empty={is_empty}")
-#         return 'skip_load' if is_empty else 'transform_sales_data'
-#     except Exception as e:
-#         logging.error(f"Error in skip_if_empty: {e}")
-#         raise
- 
- 
 branch_task = BranchPythonOperator(
     task_id='branch_on_validation',
     python_callable=skip_if_empty,
@@ -298,13 +285,20 @@ skip_load = EmptyOperator(
     dag=dag
 )
 
-success_notify = BashOperator(
-    task_id='success_notification',
-    bash_command='echo "Sales pipeline completed successfully!"',
+
+success_notify_from_load = BashOperator(
+    task_id='success_notify_from_load',
+    bash_command='echo "Sales pipeline completed successfully after loading!"',
+    dag=dag
+)
+
+success_notify_from_skip = BashOperator(
+    task_id='success_notify_from_skip',
+    bash_command='echo "Sales pipeline skipped loading but finished successfully!"',
     dag=dag
 )
  
 # Define dependencies
 start_pipeline >> download_task >> validate_task >> branch_task
-branch_task >> transform_task >> load_task >> success_notify
-branch_task >> skip_load >> success_notify
+branch_task >> transform_task >> load_task >> success_notify_from_load
+branch_task >> skip_load >> success_notify_from_skip
