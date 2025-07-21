@@ -220,13 +220,10 @@ def skip_if_empty():
     try:
         flag = open('/tmp/validate_flag.txt').read()
         logging.info(f"Branch decision: {flag}")
-        if flag == 'empty':
-            return ['skip_load', 'success_notification']
-        else:
-            return ['transform_sales_data','load_sales_data_to_postgres','success_notification']
+        return 'skip_load' if flag == 'empty' else 'transform_sales_data'
     except Exception as e:
         logging.error(f"Error in skip_if_empty: {e}")
-        return ['skip_load', 'success_notification']
+        return 'skip_load'
 
  
  
